@@ -1,0 +1,81 @@
+# Define a versão do Docker Compose. A versão '3.8' é estável e recomendada.
+version: "3.8"
+
+# 'services' é onde todos os seus contêineres são definidos.
+services:
+  #--- 1. Servidor Web (Apache + PHP) ---
+  web:
+    # 'build: .' instrui o Compose a construir uma imagem a partir do Dockerfile
+    # localizado no mesmo diretório deste arquivo.
+    build: .
+    # Nome personalizado para o contêiner, facilitando a identificação.
+    container_name: startup_web
+    # Mapeia a porta 80 do seu computador (host) para a porta 80 do contêiner.
+    # Assim, você pode acessar a aplicação em http://localhost
+    ports:
+      - "80:80"
+    # 'volumes' sincroniza arquivos entre sua máquina e o contêiner.
+    # Aqui, a pasta './app' local é espelhada em '/var/www/html' dentro do contêiner.
+    volumes:
+      - ./app:/var/www/html
+    # 'depends_on' garante que o contêiner 'mysql' será iniciado antes do 'web'.
+    depends_on:
+      - mysql
+    # Conecta este serviço à rede definida no final do arquivo.
+    networks:
+      - startup_network
+    # Política de reinicialização: o contêiner sempre reiniciará, a menos que seja parado manualmente.
+    restart: unless-stopped
+
+  #--- 2. Banco de Dados (MySQL) ---
+  mysql:
+    # Utiliza uma imagem oficial do MySQL pronta do Docker Hub.
+    image: mysql:8.0
+    container_name: startup_mysql
+    # 'environment' define as variáveis de ambiente para configurar o MySQL.
+    environment:
+      MYSQL_ROOT_PASSWORD: root123      # Senha do usuário root do banco.
+      MYSQL_DATABASE: startup_db        # Cria um banco de dados inicial com este nome.
+      MYSQL_USER: startup_user          # Cria um novo usuário.
+      MYSQL_PASSWORD: startup123        # Define a senha para o novo usuário.
+    # Mapeia a porta 3306 do seu computador para a porta 3306 do contêiner,
+    # permitindo que aplicações locais (como DBeaver, HeidiSQL) se conectem.
+    ports:
+      - "3306:3306"
+    volumes:
+      # 'mysql_data' é um volume nomeado. Ele persiste os dados do banco
+      # de forma segura, mesmo que o contêiner seja removido.
+      - mysql_data:/var/lib/mysql
+      # Monta o arquivo 'init.sql' local no diretório de inicialização do MySQL.
+      # Este script será executado na primeira vez que o contêiner for criado.
+      - ./tabelacontato.sql:/docker-entrypoint-initdb.d/tabelacontato.sql
+    networks:
+      - startup_network
+    restart: unless-stopped
+
+  #--- 3. Gerenciador de Banco de Dados (phpMyAdmin) ---
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: startup_phpmyadmin
+    environment:
+      PMA_HOST: mysql # Informa ao phpMyAdmin para se conectar ao serviço 'mysql'.
+      PMA_PORT: 3306  # Porta de conexão com o serviço 'mysql'.
+    # CORREÇÃO: Adicionada a seção de portas.
+    # Mapeia a porta 8081 do seu computador para a porta 80 do contêiner do phpMyAdmin.
+    # Você poderá acessá-lo em http://localhost:8081
+    ports:
+      - "8081:80"
+    networks:
+      - startup_network
+    depends_on:
+      - mysql
+    restart: unless-stopped
+
+# 'volumes' declara os volumes nomeados que serão gerenciados pelo Docker.
+volumes:
+  mysql_data:
+
+# 'networks' declara as redes customizadas para os serviços se comunicarem.
+networks:
+  startup_network:
+

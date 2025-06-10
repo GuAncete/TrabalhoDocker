@@ -1,0 +1,2 @@
+# Define o arquivo 'seu-arquivo.php' como o arquivo de índice padrão para este diretório.
+DirectoryIndex contato.php
