@@ -1,5 +1,4 @@
-# Define a versão do Docker Compose. A versão '3.8' é estável e recomendada.
-version: "3.8"
+
 
 # 'services' é onde todos os seus contêineres são definidos.
 services:
